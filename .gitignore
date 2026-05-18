@@ -1,13 +1,1 @@
-```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Database
-instance/*.db
-
-# Tests
-tests/__pycache__/
-```
+(empty)

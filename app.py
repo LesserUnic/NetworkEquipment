@@ -319,7 +319,7 @@ def download_document(id, doc_id):
         return redirect(url_for('index'))
     
     return send_from_directory(app.config['UPLOAD_FOLDER'], document.filename, 
-                             as_attachment=True, attachment_filename=document.original_filename)
+                             as_attachment=True, download_name=document.original_filename)
 
 @app.route('/equipment/<int:id>/document/<int:doc_id>/delete', methods=['POST'])
 def delete_document(id, doc_id):
