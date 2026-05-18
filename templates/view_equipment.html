@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+                <li class="breadcrumb-item active">{{ equipment.name }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="bi bi-hdd-network"></i> {{ equipment.name }}</h1>
+            <div>
+                <a href="{{ url_for('edit_equipment', id=equipment.id) }}" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Редактировать
+                </a>
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash"></i> Удалить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение удаления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Вы уверены, что хотите удалить устройство "{{ equipment.name }}"? Это действие нельзя отменить.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <form method="POST" action="{{ url_for('delete_equipment', id=equipment.id) }}">
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Основная информация -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Основная информация</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th width="40%">Название:</th>
+                        <td>{{ equipment.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Модель:</th>
+                        <td>{{ equipment.model }}</td>
+                    </tr>
+                    <tr>
+                        <th>Производитель:</th>
+                        <td>{{ equipment.manufacturer }}</td>
+                    </tr>
+                    <tr>
+                        <th>Серийный номер:</th>
+                        <td><code>{{ equipment.serial_number }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Категория:</th>
+                        <td>
+                            {% if equipment.category == 'router' %}
+                                <span class="badge bg-info">Маршрутизатор</span>
+                            {% elif equipment.category == 'switch' %}
+                                <span class="badge bg-primary">Коммутатор</span>
+                            {% elif equipment.category == 'server' %}
+                                <span class="badge bg-secondary">Сервер</span>
+                            {% elif equipment.category == 'storage' %}
+                                <span class="badge bg-dark">СХД</span>
+                            {% elif equipment.category == 'firewall' %}
+                                <span class="badge bg-danger">Фаервол</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Другое</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Статус:</th>
+                        <td>
+                            {% if equipment.status == 'available' %}
+                                <span class="badge bg-success">В наличии</span>
+                            {% elif equipment.status == 'in_use' %}
+                                <span class="badge bg-warning text-dark">В эксплуатации</span>
+                            {% elif equipment.status == 'maintenance' %}
+                                <span class="badge bg-info">Обслуживание</span>
+                            {% else %}
+                                <span class="badge bg-danger">Списано</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Количество:</th>
+                        <td>{{ equipment.quantity }} шт.</td>
+                    </tr>
+                    <tr>
+                        <th>Местоположение:</th>
+                        <td>{{ equipment.location or 'Не указано' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Технические характеристики -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-cpu"></i> Технические характеристики</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th width="40%">Скорость:</th>
+                        <td>{{ equipment.speed }} Мбит/с if equipment.speed else 'Не указано' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Пропускная способность:</th>
+                        <td>{{ equipment.bandwidth }} Гбит/с if equipment.bandwidth else 'Не указано' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Потребление:</th>
+                        <td>{{ equipment.power_consumption }} Вт if equipment.power_consumption else 'Не указано' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Количество портов:</th>
+                        <td>{{ equipment.ports_count if equipment.ports_count else 'Не указано' }}</td>
+                    </tr>
+                </table>
+
+                <hr>
+                <h6>Габариты:</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="40%">Ширина:</th>
+                        <td>{{ equipment.width }} мм if equipment.width else 'Не указано' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Высота:</th>
+                        <td>{{ equipment.height }} мм if equipment.height else 'Не указано' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Глубина:</th>
+                        <td>{{ equipment.depth }} мм if equipment.depth else 'Не указано' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Вес:</th>
+                        <td>{{ equipment.weight }} кг if equipment.weight else 'Не указано' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Документы -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Документы</h5>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-upload"></i> Загрузить документ
+                </button>
+            </div>
+            <div class="card-body">
+                {% if equipment.documents %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Тип документа</th>
+                                <th>Имя файла</th>
+                                <th>Дата загрузки</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in equipment.documents %}
+                            <tr>
+                                <td>
+                                    {% if doc.document_type == 'invoice' %}
+                                        <span class="badge bg-success">Накладная</span>
+                                    {% elif doc.document_type == 'manual' %}
+                                        <span class="badge bg-info">Инструкция</span>
+                                    {% elif doc.document_type == 'certificate' %}
+                                        <span class="badge bg-warning text-dark">Сертификат</span>
+                                    {% elif doc.document_type == 'warranty' %}
+                                        <span class="badge bg-primary">Гарантия</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Другое</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ doc.original_filename }}</td>
+                                <td>{{ doc.uploaded_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('download_document', id=equipment.id, doc_id=doc.id) }}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="bi bi-download"></i> Скачать
+                                        </a>
+                                        <button class="btn btn-outline-danger" 
+                                                onclick="deleteDocument({{ equipment.id }}, {{ doc.id }})">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox display-4 text-muted"></i>
+                    <p class="text-muted mt-2">Документы не загружены</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно загрузки документа -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('upload_document', id=equipment.id) }}" enctype="multipart/form-data">
+                {{ upload_form.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title">Загрузка документа</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ upload_form.document_type.label(class="form-label") }}
+                        {{ upload_form.document_type(class="form-select") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ upload_form.document.label(class="form-label") }}
+                        {{ upload_form.document(class="form-control") }}
+                        <div class="form-text">PDF, DOC, DOCX, JPG, PNG, TXT (макс. 16MB)</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    {{ upload_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Форма удаления документа -->
+<form id="deleteDocumentForm" method="POST" style="display: none;"></form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteDocument(equipmentId, docId) {
+    if (confirm('Вы уверены, что хотите удалить этот документ?')) {
+        const form = document.getElementById('deleteDocumentForm');
+        form.action = `/equipment/${equipmentId}/document/${docId}/delete`;
+        form.method = 'POST';
+        form.submit();
+    }
+}
+</script>
+{% endblock %}
