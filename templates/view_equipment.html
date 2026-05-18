@@ -124,15 +124,15 @@
                 <table class="table table-sm">
                     <tr>
                         <th width="40%">Скорость:</th>
-                        <td>{{ f'{equipment.speed} Мбит/с' if equipment.speed else 'Не указано' }}</td>
+                        <td>{{ equipment.speed ~ ' Мбит/с' if equipment.speed else 'Не указано' }}</td>
                     </tr>
                     <tr>
                         <th>Пропускная способность:</th>
-                        <td>{{ f'{equipment.bandwidth} Гбит/с' if equipment.bandwidth else 'Не указано' }}</td>
+                        <td>{{ equipment.bandwidth ~ ' Гбит/с' if equipment.bandwidth else 'Не указано' }}</td>
                     </tr>
                     <tr>
                         <th>Потребление:</th>
-                        <td>{{ f'{equipment.power_consumption} Вт' if equipment.power_consumption else 'Не указано' }}</td>
+                        <td>{{ equipment.power_consumption ~ ' Вт' if equipment.power_consumption else 'Не указано' }}</td>
                     </tr>
                     <tr>
                         <th>Количество портов:</th>
@@ -145,19 +145,19 @@
                 <table class="table table-sm">
                     <tr>
                         <th width="40%">Ширина:</th>
-                        <td>{{ f'{equipment.width} мм' if equipment.width else 'Не указано' }}</td>
+                        <td>{{ equipment.width ~ ' мм' if equipment.width else 'Не указано' }}</td>
                     </tr>
                     <tr>
                         <th>Высота:</th>
-                        <td>{{ f'{equipment.height} мм' if equipment.height else 'Не указано' }}</td>
+                        <td>{{ equipment.height ~ ' мм' if equipment.height else 'Не указано' }}</td>
                     </tr>
                     <tr>
                         <th>Глубина:</th>
-                        <td>{{ f'{equipment.depth} мм' if equipment.depth else 'Не указано' }}</td>
+                        <td>{{ equipment.depth ~ ' мм' if equipment.depth else 'Не указано' }}</td>
                     </tr>
                     <tr>
                         <th>Вес:</th>
-                        <td>{{ f'{equipment.weight} кг' if equipment.weight else 'Не указано' }}</td>
+                        <td>{{ equipment.weight ~ ' кг' if equipment.weight else 'Не указано' }}</td>
                     </tr>
                 </table>
             </div>
