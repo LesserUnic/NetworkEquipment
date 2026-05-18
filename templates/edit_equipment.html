@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('view_equipment', id=equipment.id) }}">{{ equipment.name }}</a></li>
+                <li class="breadcrumb-item active">Редактирование</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-pencil"></i> Редактирование устройства</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Основная информация</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
+                    {% for error in form.name.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6">
+                    {{ form.model.label(class="form-label") }}
+                    {{ form.model(class="form-control") }}
+                    {% for error in form.model.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    {{ form.manufacturer.label(class="form-label") }}
+                    {{ form.manufacturer(class="form-control") }}
+                    {% for error in form.manufacturer.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6">
+                    {{ form.serial_number.label(class="form-label") }}
+                    {{ form.serial_number(class="form-control") }}
+                    {% for error in form.serial_number.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    {{ form.category.label(class="form-label") }}
+                    {{ form.category(class="form-select") }}
+                    {% for error in form.category.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4">
+                    {{ form.quantity.label(class="form-label") }}
+                    {{ form.quantity(class="form-control") }}
+                    {% for error in form.quantity.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4">
+                    {{ form.status.label(class="form-label") }}
+                    {{ form.status(class="form-select") }}
+                    {% for error in form.status.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                {{ form.location.label(class="form-label") }}
+                {{ form.location(class="form-control", placeholder="Например: Серверная комната 1, Стойка 3") }}
+                {% for error in form.location.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <hr class="my-4">
+            <h5>Технические характеристики</h5>
+
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    {{ form.speed.label(class="form-label") }}
+                    {{ form.speed(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.bandwidth.label(class="form-label") }}
+                    {{ form.bandwidth(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.power_consumption.label(class="form-label") }}
+                    {{ form.power_consumption(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.ports_count.label(class="form-label") }}
+                    {{ form.ports_count(class="form-control") }}
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <h5>Габариты</h5>
+
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    {{ form.width.label(class="form-label") }}
+                    {{ form.width(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.height.label(class="form-label") }}
+                    {{ form.height(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.depth.label(class="form-label") }}
+                    {{ form.depth(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.weight.label(class="form-label") }}
+                    {{ form.weight(class="form-control") }}
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                <a href="{{ url_for('view_equipment', id=equipment.id) }}" class="btn btn-secondary">Отмена</a>
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
