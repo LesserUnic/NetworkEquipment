@@ -105,6 +105,16 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% if current_user and current_user.role in ['admin', 'engineer'] %}
+                    <tr>
+                        <th>Изменить статус:</th>
+                        <td>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#changeStatusModal">
+                                <i class="bi bi-arrow-repeat"></i> Изменить статус
+                            </button>
+                        </td>
+                    </tr>
+                    {% endif %}
                     <tr>
                         <th>Количество:</th>
                         <td>{{ equipment.quantity }} шт.</td>
@@ -269,6 +279,100 @@
                     {{ upload_form.submit(class="btn btn-primary") }}
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно изменения статуса -->
+<div class="modal fade" id="changeStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('change_status', id=equipment.id) }}">
+                {{ status_change_form.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title">Изменение статуса оборудования</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ status_change_form.status.label(class="form-label") }}
+                        {{ status_change_form.status(class="form-select") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ status_change_form.comment.label(class="form-label") }}
+                        {{ status_change_form.comment(class="form-control", rows=3, placeholder="Введите комментарий к изменению статуса (необязательно)") }}
+                        <div class="form-text">Комментарий поможет отследить причину изменения статуса</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    {{ status_change_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Журнал изменений статуса -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Журнал изменений статуса</h5>
+            </div>
+            <div class="card-body">
+                {% if equipment.status_logs %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Дата и время</th>
+                                <th>Пользователь</th>
+                                <th>Старый статус</th>
+                                <th>Новый статус</th>
+                                <th>Комментарий</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in equipment.status_logs %}
+                            <tr>
+                                <td>{{ log.changed_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                                <td>{{ log.user.username }}</td>
+                                <td>
+                                    {% if log.old_status == 'available' %}
+                                        <span class="badge bg-success">В наличии</span>
+                                    {% elif log.old_status == 'in_use' %}
+                                        <span class="badge bg-warning text-dark">В эксплуатации</span>
+                                    {% elif log.old_status == 'maintenance' %}
+                                        <span class="badge bg-info">Обслуживание</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Списано</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.new_status == 'available' %}
+                                        <span class="badge bg-success">В наличии</span>
+                                    {% elif log.new_status == 'in_use' %}
+                                        <span class="badge bg-warning text-dark">В эксплуатации</span>
+                                    {% elif log.new_status == 'maintenance' %}
+                                        <span class="badge bg-info">Обслуживание</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Списано</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.comment or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox display-4 text-muted"></i>
+                    <p class="text-muted mt-2">История изменений статуса пуста</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

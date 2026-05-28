@@ -130,6 +130,23 @@ class Document(db.Model):
     def __repr__(self):
         return f'<Document {self.filename}>'
 
+# Модель журнала изменений статуса
+class StatusChangeLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    equipment_id = db.Column(db.Integer, db.ForeignKey('equipment.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    old_status = db.Column(db.String(50), nullable=False)
+    new_status = db.Column(db.String(50), nullable=False)
+    comment = db.Column(db.Text, nullable=True)
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Связи
+    equipment = db.relationship('Equipment', backref=db.backref('status_logs', lazy=True, order_by='StatusChangeLog.changed_at.desc()'))
+    user = db.relationship('User', backref=db.backref('status_changes', lazy=True))
+    
+    def __repr__(self):
+        return f'<StatusChangeLog {self.equipment_id}: {self.old_status} -> {self.new_status}>'
+
 # Формы
 class EquipmentForm(FlaskForm):
     name = StringField('Название', validators=[DataRequired()])
@@ -197,6 +214,17 @@ class SearchForm(FlaskForm):
         ('retired', 'Списано')
     ])
     submit = SubmitField('Поиск')
+
+# Форма для изменения статуса с комментарием
+class StatusChangeForm(FlaskForm):
+    status = SelectField('Новый статус', choices=[
+        ('available', 'В наличии'),
+        ('in_use', 'В эксплуатации'),
+        ('maintenance', 'В обслуживании'),
+        ('retired', 'Списано')
+    ], validators=[DataRequired()])
+    comment = TextAreaField('Комментарий к изменению', validators=[Optional()])
+    submit = SubmitField('Изменить статус')
 
 # Формы авторизации и управления пользователями
 class LoginForm(FlaskForm):
@@ -315,8 +343,15 @@ def add_equipment():
 def view_equipment(id):
     equipment = Equipment.query.get_or_404(id)
     upload_form = DocumentUploadForm()
+    status_change_form = StatusChangeForm()
+    # Устанавливаем текущий статус в форму
+    status_change_form.status.data = equipment.status
     current_user = get_current_user()
-    return render_template('view_equipment.html', equipment=equipment, upload_form=upload_form, current_user=current_user)
+    return render_template('view_equipment.html', 
+                         equipment=equipment, 
+                         upload_form=upload_form, 
+                         status_change_form=status_change_form,
+                         current_user=current_user)
 
 @app.route('/equipment/<int:id>/edit', methods=['GET', 'POST'])
 @engineer_or_admin_required
@@ -366,6 +401,42 @@ def delete_equipment(id):
         flash(f'Ошибка при удалении: {str(e)}', 'danger')
     
     return redirect(url_for('index'))
+
+@app.route('/equipment/<int:id>/change_status', methods=['POST'])
+@engineer_or_admin_required
+def change_status(id):
+    equipment = Equipment.query.get_or_404(id)
+    form = StatusChangeForm()
+    
+    if form.validate_on_submit():
+        new_status = form.status.data
+        comment = form.comment.data.strip() if form.comment.data else None
+        old_status = equipment.status
+        
+        # Проверяем, изменился ли статус
+        if new_status != old_status:
+            equipment.status = new_status
+            
+            # Создаем запись в журнале изменений
+            log_entry = StatusChangeLog(
+                equipment_id=equipment.id,
+                user_id=session['user_id'],
+                old_status=old_status,
+                new_status=new_status,
+                comment=comment
+            )
+            
+            try:
+                db.session.add(log_entry)
+                db.session.commit()
+                flash('Статус оборудования успешно изменен!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Ошибка при изменении статуса: {str(e)}', 'danger')
+        else:
+            flash('Статус не изменился', 'info')
+    
+    return redirect(url_for('view_equipment', id=id))
 
 @app.route('/equipment/<int:id>/upload', methods=['POST'])
 @engineer_or_admin_required
