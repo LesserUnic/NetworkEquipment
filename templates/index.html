@@ -12,7 +12,7 @@
     <div class="col-md-4">
         <div class="card stat-card stat-card-primary">
             <div class="card-body">
-                <h5 class="card-title">Всего устройств</h5>
+                <h5 class="card-title">Число моделей</h5>
                 <p class="card-text display-6">{{ total_count }}</p>
             </div>
         </div>
@@ -20,16 +20,16 @@
     <div class="col-md-4">
         <div class="card stat-card stat-card-success">
             <div class="card-body">
-                <h5 class="card-title">В наличии</h5>
-                <p class="card-text display-6">{{ available_count }}</p>
+                <h5 class="card-title">Всего единиц</h5>
+                <p class="card-text display-6">{{ total_units }}</p>
             </div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card stat-card stat-card-warning">
             <div class="card-body">
-                <h5 class="card-title">В эксплуатации</h5>
-                <p class="card-text display-6">{{ in_use_count }}</p>
+                <h5 class="card-title">В наличии</h5>
+                <p class="card-text display-6">{{ available_count }}</p>
             </div>
         </div>
     </div>
@@ -44,15 +44,15 @@
         <form method="GET" action="{{ url_for('index') }}" class="row g-3">
             <div class="col-md-4">
                 <label class="form-label">Поисковый запрос</label>
-                {{ form.search_query(class="form-control", placeholder="Название, модель, серийный номер...") }}
+                {{ form.search_query(class="form-control", placeholder="Название, модель, серийный номер...", value=request.args.get('search_query', '')) }}
             </div>
             <div class="col-md-3">
                 <label class="form-label">Категория</label>
-                {{ form.category(class="form-select") }}
+                {{ form.category(class="form-select", value=request.args.get('category', 'all')) }}
             </div>
             <div class="col-md-3">
                 <label class="form-label">Статус</label>
-                {{ form.status(class="form-select") }}
+                {{ form.status(class="form-select", value=request.args.get('status', 'all')) }}
             </div>
             <div class="col-md-2 d-flex align-items-end">
                 {{ form.submit(class="btn btn-primary w-100") }}

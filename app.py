@@ -15,6 +15,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads/documents'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Создаем директорию для загрузки файлов, если она не существует
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 db = SQLAlchemy(app)
 
 # Модель оборудования
@@ -143,6 +146,15 @@ with app.app_context():
 @app.route('/')
 def index():
     form = SearchForm()
+    
+    # Устанавливаем значения формы из параметров запроса для сохранения состояния фильтров
+    if request.args.get('search_query'):
+        form.search_query.data = request.args.get('search_query')
+    if request.args.get('category'):
+        form.category.data = request.args.get('category')
+    if request.args.get('status'):
+        form.status.data = request.args.get('status')
+    
     query = Equipment.query
     
     # Применение фильтров
@@ -167,15 +179,15 @@ def index():
     
     # Статистика
     total_count = Equipment.query.count()
+    total_units = db.session.query(db.func.sum(Equipment.quantity)).scalar() or 0
     available_count = Equipment.query.filter_by(status='available').count()
-    in_use_count = Equipment.query.filter_by(status='in_use').count()
     
     return render_template('index.html', 
                          equipment_list=equipment_list, 
                          form=form,
                          total_count=total_count,
-                         available_count=available_count,
-                         in_use_count=in_use_count)
+                         total_units=total_units,
+                         available_count=available_count)
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_equipment():
@@ -307,7 +319,7 @@ def download_document(id, doc_id):
         return redirect(url_for('index'))
     
     return send_from_directory(app.config['UPLOAD_FOLDER'], document.filename, 
-                             as_attachment=True, attachment_filename=document.original_filename)
+                             as_attachment=True, download_name=document.original_filename)
 
 @app.route('/equipment/<int:id>/document/<int:doc_id>/delete', methods=['POST'])
 def delete_document(id, doc_id):
