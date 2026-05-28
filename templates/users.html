@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1><i class="bi bi-people"></i> Управление пользователями</h1>
+        <a href="{{ url_for('add_user') }}" class="btn btn-success">
+            <i class="bi bi-plus-lg"></i> Добавить пользователя
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Имя пользователя</th>
+                    <th>Роль</th>
+                    <th>Дата создания</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>
+                        <i class="bi bi-person-circle"></i> {{ user.username }}
+                        {% if user.id == current_user.id %}
+                            <span class="badge bg-info">Вы</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.role == 'admin' %}
+                            <span class="badge bg-danger">Администратор</span>
+                        {% elif user.role == 'engineer' %}
+                            <span class="badge bg-primary">Инженер</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Пользователь</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('edit_user', id=user.id) }}" class="btn btn-outline-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if user.id != current_user.id %}
+                            <button class="btn btn-outline-danger" onclick="deleteUser({{ user.id }}, '{{ user.username }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<form id="deleteUserForm" method="POST" style="display: none;"></form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteUser(userId, username) {
+    if (confirm('Вы уверены, что хотите удалить пользователя "' + username + '"?')) {
+        const form = document.getElementById('deleteUserForm');
+        form.action = `/user/${userId}/delete`;
+        form.method = 'POST';
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

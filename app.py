@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, FloatField, IntegerField, SelectField, TextAreaField, SubmitField
-from wtforms.validators import DataRequired, Optional
+from wtforms import StringField, FloatField, IntegerField, SelectField, TextAreaField, SubmitField, PasswordField
+from wtforms.validators import DataRequired, Optional, EqualTo, Length
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 import os
 from datetime import datetime
 
@@ -19,6 +21,64 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
+
+# Модель пользователя
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default='user')  # admin, engineer, user
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+# Декораторы для проверки прав доступа
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему', 'warning')
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        if not user or user.role != 'admin':
+            flash('Доступ запрещен. Требуются права администратора', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def engineer_or_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему', 'warning')
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        if not user or user.role not in ['admin', 'engineer']:
+            flash('Доступ запрещен. Требуются права инженера или администратора', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def get_current_user():
+    if 'user_id' in session:
+        return User.query.get(session['user_id'])
+    return None
 
 # Модель оборудования
 class Equipment(db.Model):
@@ -138,9 +198,33 @@ class SearchForm(FlaskForm):
     ])
     submit = SubmitField('Поиск')
 
-# Создание БД
+# Формы авторизации и управления пользователями
+class LoginForm(FlaskForm):
+    username = StringField('Имя пользователя', validators=[DataRequired(), Length(min=3, max=80)])
+    password = PasswordField('Пароль', validators=[DataRequired()])
+    submit = SubmitField('Войти')
+
+class UserForm(FlaskForm):
+    username = StringField('Имя пользователя', validators=[DataRequired(), Length(min=3, max=80)])
+    password = PasswordField('Пароль', validators=[DataRequired(), Length(min=4)])
+    role = SelectField('Роль', choices=[
+        ('user', 'Пользователь'),
+        ('engineer', 'Инженер'),
+        ('admin', 'Администратор')
+    ], validators=[DataRequired()])
+    submit = SubmitField('Сохранить')
+
+# Создание БД и администратора по умолчанию
 with app.app_context():
     db.create_all()
+    # Создаем администратора по умолчанию, если он не существует
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(username='admin', role='admin')
+        admin.set_password('admin')
+        db.session.add(admin)
+        db.session.commit()
+        print("Администратор по умолчанию создан (логин: admin, пароль: admin)")
 
 # Маршруты
 @app.route('/')
@@ -182,14 +266,17 @@ def index():
     total_units = db.session.query(db.func.sum(Equipment.quantity)).scalar() or 0
     available_count = Equipment.query.filter_by(status='available').count()
     
+    current_user = get_current_user()
     return render_template('index.html', 
                          equipment_list=equipment_list, 
                          form=form,
                          total_count=total_count,
                          total_units=total_units,
-                         available_count=available_count)
+                         available_count=available_count,
+                         current_user=current_user)
 
 @app.route('/add', methods=['GET', 'POST'])
+@engineer_or_admin_required
 def add_equipment():
     form = EquipmentForm()
     if form.validate_on_submit():
@@ -221,15 +308,18 @@ def add_equipment():
             db.session.rollback()
             flash(f'Ошибка при добавлении: {str(e)}', 'danger')
     
-    return render_template('add_equipment.html', form=form)
+    current_user = get_current_user()
+    return render_template('add_equipment.html', form=form, current_user=current_user)
 
 @app.route('/equipment/<int:id>')
 def view_equipment(id):
     equipment = Equipment.query.get_or_404(id)
     upload_form = DocumentUploadForm()
-    return render_template('view_equipment.html', equipment=equipment, upload_form=upload_form)
+    current_user = get_current_user()
+    return render_template('view_equipment.html', equipment=equipment, upload_form=upload_form, current_user=current_user)
 
 @app.route('/equipment/<int:id>/edit', methods=['GET', 'POST'])
+@engineer_or_admin_required
 def edit_equipment(id):
     equipment = Equipment.query.get_or_404(id)
     form = EquipmentForm(obj=equipment)
@@ -260,9 +350,11 @@ def edit_equipment(id):
             db.session.rollback()
             flash(f'Ошибка при обновлении: {str(e)}', 'danger')
     
-    return render_template('edit_equipment.html', form=form, equipment=equipment)
+    current_user = get_current_user()
+    return render_template('edit_equipment.html', form=form, equipment=equipment, current_user=current_user)
 
 @app.route('/equipment/<int:id>/delete', methods=['POST'])
+@admin_required
 def delete_equipment(id):
     equipment = Equipment.query.get_or_404(id)
     try:
@@ -276,6 +368,7 @@ def delete_equipment(id):
     return redirect(url_for('index'))
 
 @app.route('/equipment/<int:id>/upload', methods=['POST'])
+@engineer_or_admin_required
 def upload_document(id):
     equipment = Equipment.query.get_or_404(id)
     form = DocumentUploadForm()
@@ -312,6 +405,7 @@ def upload_document(id):
     return redirect(url_for('view_equipment', id=id))
 
 @app.route('/equipment/<int:id>/document/<int:doc_id>')
+@login_required
 def download_document(id, doc_id):
     document = Document.query.get_or_404(doc_id)
     if document.equipment_id != id:
@@ -322,6 +416,7 @@ def download_document(id, doc_id):
                              as_attachment=True, download_name=document.original_filename)
 
 @app.route('/equipment/<int:id>/document/<int:doc_id>/delete', methods=['POST'])
+@admin_required
 def delete_document(id, doc_id):
     document = Document.query.get_or_404(doc_id)
     if document.equipment_id != id:
@@ -343,6 +438,110 @@ def delete_document(id, doc_id):
         flash(f'Ошибка при удалении документа: {str(e)}', 'danger')
     
     return redirect(url_for('view_equipment', id=id))
+
+# Маршруты авторизации и управления пользователями
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.check_password(form.password.data):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['user_role'] = user.role
+            flash(f'Добро пожаловать, {user.username}!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Неверное имя пользователя или пароль', 'danger')
+    
+    return render_template('login.html', form=form)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Вы вышли из системы', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/users')
+@admin_required
+def users_list():
+    users = User.query.all()
+    current_user = get_current_user()
+    return render_template('users.html', users=users, current_user=current_user)
+
+@app.route('/user/add', methods=['GET', 'POST'])
+@admin_required
+def add_user():
+    form = UserForm()
+    if form.validate_on_submit():
+        # Проверяем, существует ли пользователь с таким именем
+        existing_user = User.query.filter_by(username=form.username.data).first()
+        if existing_user:
+            flash('Пользователь с таким именем уже существует', 'danger')
+        else:
+            user = User(
+                username=form.username.data,
+                role=form.role.data
+            )
+            user.set_password(form.password.data)
+            try:
+                db.session.add(user)
+                db.session.commit()
+                flash(f'Пользователь {user.username} успешно создан!', 'success')
+                return redirect(url_for('users_list'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Ошибка при создании пользователя: {str(e)}', 'danger')
+    
+    current_user = get_current_user()
+    return render_template('add_user.html', form=form, current_user=current_user)
+
+@app.route('/user/<int:id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_user(id):
+    user = User.query.get_or_404(id)
+    form = UserForm(obj=user)
+    # Убираем валидацию пароля при редактировании (пароль опционален)
+    form.password.validators = [Length(min=4)] if form.password.data else []
+    
+    if form.validate_on_submit():
+        user.username = form.username.data
+        user.role = form.role.data
+        if form.password.data:
+            user.set_password(form.password.data)
+        
+        try:
+            db.session.commit()
+            flash(f'Пользователь {user.username} успешно обновлен!', 'success')
+            return redirect(url_for('users_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при обновлении пользователя: {str(e)}', 'danger')
+    
+    current_user = get_current_user()
+    return render_template('edit_user.html', form=form, user=user, current_user=current_user)
+
+@app.route('/user/<int:id>/delete', methods=['POST'])
+@admin_required
+def delete_user(id):
+    user = User.query.get_or_404(id)
+    # Нельзя удалить самого себя
+    if 'user_id' in session and session['user_id'] == id:
+        flash('Нельзя удалить свою собственную учетную запись', 'danger')
+        return redirect(url_for('users_list'))
+    
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        flash(f'Пользователь {user.username} успешно удален!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении пользователя: {str(e)}', 'danger')
+    
+    return redirect(url_for('users_list'))
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
