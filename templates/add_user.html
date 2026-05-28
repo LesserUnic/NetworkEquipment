@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('users_list') }}">Пользователи</a></li>
+                <li class="breadcrumb-item active">Добавить пользователя</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-person-plus"></i> Добавить пользователя</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-3">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control", autofocus=True) }}
+                {% for error in form.username.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control") }}
+                <div class="form-text">Минимум 4 символа</div>
+                {% for error in form.password.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.role.label(class="form-label") }}
+                {{ form.role(class="form-select") }}
+                {% for error in form.role.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                <a href="{{ url_for('users_list') }}" class="btn btn-secondary">Отмена</a>
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

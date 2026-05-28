@@ -47,9 +47,37 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">Главная</a>
                     </li>
+                    {% if current_user and current_user.role in ['admin', 'engineer'] %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('add_equipment') }}">Добавить устройство</a>
                     </li>
+                    {% endif %}
+                    {% if current_user and current_user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('users_list') }}">Пользователи</a>
+                    </li>
+                    {% endif %}
+                    {% if current_user %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ current_user.username }}
+                            {% if current_user.role == 'admin' %}
+                                <span class="badge bg-danger">Админ</span>
+                            {% elif current_user.role == 'engineer' %}
+                                <span class="badge bg-primary">Инженер</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Пользователь</span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Выйти</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Войти</a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
